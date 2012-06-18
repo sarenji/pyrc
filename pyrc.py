@@ -18,6 +18,7 @@ class Bot(object):
 
     self._inbuffer = ""
     self._commands = []
+    self.socket = None
 
     self.parsecommands()
 
@@ -25,10 +26,7 @@ class Bot(object):
     '''
     Connects to the IRC server with the options defined in `config`
     '''
-    s = socket.socket()
-    s.connect((self.config['host'], self.config['port']))
-    s.send("NICK %s\r\n" % self.config['nick'])
-    s.send("USER %s %s bla :%s\r\n" % (self.config['ident'], self.config['host'], self.config['realname']))
+    self._connect()
 
     # Constantly listens to the input from the server. Since the messages come
     # in pieces, we wait until we receive 1 or more full lines to start parsing.
@@ -75,3 +73,14 @@ class Bot(object):
       # TODO: Allow for regex matchers
       if command_func._matcher == command_name:
         command_func(self)
+
+  def cmd(self, raw_line):
+    self.socket.send(raw_line + "\r\n")
+
+  def _connect(self):
+    "Connects a socket to the server using options defined in `config`."
+    self.socket = socket.socket()
+    self.socket.connect((self.config['host'], self.config['port']))
+    self.cmd("NICK %s" % self.config['nick'])
+    self.cmd("USER %s %s bla :%s" %
+        (self.config['ident'], self.config['host'], self.config['realname']))
