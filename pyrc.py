@@ -51,7 +51,9 @@ class Bot(object):
 
   def parseline(self, line):
     if line.startswith("PING"):
-      self.cmd("PONG %s" % message)
+      length = len("PING ")
+      host = line[length:]
+      self.cmd("PONG %s" % host)
     elif re.match(r"^:\S+ PRIVMSG", line):
       self.parsecommand(line)
     elif line.startswith(":" + self.config['nick']):
