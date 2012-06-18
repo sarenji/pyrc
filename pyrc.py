@@ -22,6 +22,11 @@ class Bot(object):
 
     self.parsecommands()
 
+  def message(self, recipient, s):
+    "High level interface to sending an IRC message."
+    print (recipient, s)
+    self.cmd("PRIVMSG %s :%s" % (recipient, s))
+
   def connect(self):
     '''
     Connects to the IRC server with the options defined in `config`
@@ -34,7 +39,7 @@ class Bot(object):
     # A new line is defined as ending in \r\n in the RFC, but some servers
     # separate by \n. This script takes care of both.
     while True:
-      self._inbuffer = self._inbuffer + s.recv(1024)
+      self._inbuffer = self._inbuffer + self.socket.recv(1024)
       # Some IRC servers disregard the RFC and split lines by \n rather than \r\n.
       temp = string.split(self._inbuffer, "\n")
       self._inbuffer = temp.pop()
@@ -47,13 +52,11 @@ class Bot(object):
 
   def parseline(self, line):
     if line.startswith("PING"):
-      s.send("PONG %s\r\n" % message)
-    elif re.match(r"^:[^\s:]+ PRIVMSG", line):
-      # We don't need the metadata for the PRIVMSG.
-      line = re.sub(r"^\S+ PRIVMSG \S+\s+:", '', line)
+      self.cmd("PONG %s" % message)
+    elif re.match(r"^:\S+ PRIVMSG", line):
       self.parsecommand(line)
     elif line.startswith(":" + self.config['nick']):
-      s.send("JOIN #turntechgodhead\r\n")
+      self.cmd("JOIN #turntechgodhead")
 
   def parsecommands(self):
     for func in self.__class__.__dict__.values():
@@ -64,15 +67,15 @@ class Bot(object):
           raise "This is not a type I've ever heard of."
 
   def parsecommand(self, line):
-    nick_regex = r"^%s[,:]?\s" % self.config['nick']
+    nick_regex = r"^:\S+ PRIVMSG (\S+) :%s[,:]?\s+" % self.config['nick']
     if not re.match(nick_regex, line):
       return
 
-    command_name = re.sub(nick_regex, '', line)
+    channel, command = re.match(nick_regex + r'(.*)', line).groups()
     for command_func in self._commands:
       # TODO: Allow for regex matchers
-      if command_func._matcher == command_name:
-        command_func(self)
+      if command_func._matcher == command:
+        command_func(self, channel)
 
   def cmd(self, raw_line):
     self.socket.send(raw_line + "\r\n")
