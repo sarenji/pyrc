@@ -1,38 +1,77 @@
+import inspect
 import sys
 import socket
 import string
+import re
 
-HOST = "irc.freenode.net"
-PORT = 6667
-NICK = "HarpBot"
-IDENT = "derpbot"
-REALNAME = "David's Bot"
-inbuffer = ""
+class Bot(object):
+  def __init__(self, host, **kwargs):
+    '''
+    Initializes a new pyrc.Bot.
+    '''
+    self.config = dict(kwargs)
+    self.config.setdefault('host', host)
+    self.config.setdefault('port', 6667)
+    self.config.setdefault('nick', "HarpBot")
+    self.config.setdefault('ident', "harpbot")
+    self.config.setdefault('realname', "David's Bot")
 
-s = socket.socket()
-s.connect((HOST, PORT))
-s.send("NICK %s\r\n" % NICK)
-s.send("USER %s %s bla :%s\r\n" % (IDENT, HOST, REALNAME))
+    self._inbuffer = ""
+    self._commands = []
 
-while True:
-  inbuffer = inbuffer + s.recv(1024)
-  # Some IRC servers disregard the RFC and split lines by \n rather than \r\n.
-  temp = string.split(inbuffer, "\n")
-  inbuffer = temp.pop()
+    self.parsecommands()
 
-  for line in temp:
-    print line
+  def connect(self):
+    '''
+    Connects to the IRC server with the options defined in `config`
+    '''
+    s = socket.socket()
+    s.connect((self.config['host'], self.config['port']))
+    s.send("NICK %s\r\n" % self.config['nick'])
+    s.send("USER %s %s bla :%s\r\n" % (self.config['ident'], self.config['host'], self.config['realname']))
 
-    # Strip \r from \r\n for RFC-compliant IRC servers.
-    line = string.rstrip(line, '\r')
-    line = string.split(line, None, 1)
+    # Constantly listens to the input from the server. Since the messages come
+    # in pieces, we wait until we receive 1 or more full lines to start parsing.
+    #
+    # A new line is defined as ending in \r\n in the RFC, but some servers
+    # separate by \n. This script takes care of both.
+    while True:
+      self._inbuffer = self._inbuffer + s.recv(1024)
+      # Some IRC servers disregard the RFC and split lines by \n rather than \r\n.
+      temp = string.split(self._inbuffer, "\n")
+      self._inbuffer = temp.pop()
 
-    # Lines may be single words.
-    command = line[0]
-    message = line[1] if len(line) > 1 else ""
+      for line in temp:
+        # Strip \r from \r\n for RFC-compliant IRC servers.
+        line = string.rstrip(line, '\r')
+        self.parseline(line)
+        print line
 
-    if command == "PING":
+  def parseline(self, line):
+    if line.startswith("PING"):
       s.send("PONG %s\r\n" % message)
-
-    if command == ":" + NICK:
+    elif re.match(r"^:[^\s:]+ PRIVMSG", line):
+      # We don't need the metadata for the PRIVMSG.
+      line = re.sub(r"^\S+ PRIVMSG \S+\s+:", '', line)
+      self.parsecommand(line)
+    elif line.startswith(":" + self.config['nick']):
       s.send("JOIN #turntechgodhead\r\n")
+
+  def parsecommands(self):
+    for func in self.__class__.__dict__.values():
+      if callable(func) and hasattr(func, '_type'):
+        if func._type == 'COMMAND':
+          self._commands.append(func)
+        else:
+          raise "This is not a type I've ever heard of."
+
+  def parsecommand(self, line):
+    nick_regex = r"^%s[,:]?\s" % self.config['nick']
+    if not re.match(nick_regex, line):
+      return
+
+    command_name = re.sub(nick_regex, '', line)
+    for command_func in self._commands:
+      # TODO: Allow for regex matchers
+      if command_func._matcher == command_name:
+        command_func(self)
