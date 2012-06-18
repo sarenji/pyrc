@@ -30,6 +30,5 @@ Then on IRC, after the bot logs in:
 
 ## TODO
 
-* Turn into PyPi package
 * Less strict commands. Add ability to define regex commands.
 * Fix hacky joining of channels.
