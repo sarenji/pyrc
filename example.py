@@ -1,5 +1,5 @@
 import pyrc
-import utils.hooks as hooks
+import pyrc.utils.hooks as hooks
 
 class HerpBot(pyrc.Bot):
   @hooks.command
