@@ -24,7 +24,6 @@ class Bot(object):
 
   def message(self, recipient, s):
     "High level interface to sending an IRC message."
-    print (recipient, s)
     self.cmd("PRIVMSG %s :%s" % (recipient, s))
 
   def connect(self):
