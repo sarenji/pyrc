@@ -25,7 +25,7 @@ if __name__ == '__main__':
 Then on IRC, after the bot logs in:
 
 ```
-&lt;davidpeter&gt; HarpBot, sayhi
+<davidpeter> HarpBot, sayhi
 ```
 
 ## TODO
