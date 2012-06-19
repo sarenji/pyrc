@@ -16,6 +16,7 @@ class Bot(object):
     self.config.setdefault('nick', nick)
     self.config.setdefault('ident', nick.lower())
     self.config.setdefault('realname', "A Pyrc Bot")
+    self.config.setdefault('channels', [])
 
     self._inbuffer = ""
     self._commands = []
@@ -58,7 +59,9 @@ class Bot(object):
     elif re.match(r"^:\S+ PRIVMSG", line):
       self.parsecommand(line)
     elif line.startswith(":" + self.config['nick']):
-      self.cmd("JOIN #turntechgodhead")
+      if len(self.config['channels']) > 0:
+        channels = ' '.join(self.config['channels'])
+        self.cmd("JOIN " + channels)
 
   def parsecommands(self):
     for func in self.__class__.__dict__.values():

@@ -8,5 +8,5 @@ class GangstaBot(pyrc.Bot):
     self.message(channel, "yo")
 
 if __name__ == '__main__':
-  bot = GangstaBot('irc.freenode.net')
+  bot = GangstaBot('irc.freenode.net', channels = ['#turntechgodhead'])
   bot.connect()

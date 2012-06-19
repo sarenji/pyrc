@@ -20,7 +20,7 @@ class HiBot(pyrc.Bot):
     self.message(channel, "hi!")
 
 if __name__ == '__main__':
-  bot = HiBot('irc.freenode.net')
+  bot = HiBot('irc.freenode.net', channels = ['#your_channel'])
   bot.connect()
 ```
 
