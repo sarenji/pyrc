@@ -59,6 +59,7 @@ class Bot(object):
     elif re.match(r"^:\S+ PRIVMSG", line):
       self.parsecommand(line)
     elif line.startswith(":" + self.config['nick']):
+      # TODO: Improve the above. Should only join on MODE +i or something.
       if len(self.config['channels']) > 0:
         channels = ' '.join(self.config['channels'])
         self.cmd("JOIN " + channels)
