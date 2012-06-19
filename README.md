@@ -28,6 +28,7 @@ Then on IRC, after the bot logs in:
 
 ```
 <davidpeter> HarpBot, sayhi
+<HarpBot> hi!
 ```
 
 ## TODO
