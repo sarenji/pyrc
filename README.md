@@ -4,7 +4,9 @@ Slim, concise IRC client. Also cute.
 
 ## Installation
 
-TODO.
+```bash
+$ pip install pyrc
+```
 
 ## Usage
 
