@@ -1,12 +1,12 @@
 import pyrc
 import pyrc.utils.hooks as hooks
 
-class HerpBot(pyrc.Bot):
+class GangstaBot(pyrc.Bot):
   @hooks.command
-  def derper(self, channel):
+  def bling(self, channel):
     "will print yo"
     self.message(channel, "yo")
 
 if __name__ == '__main__':
-  bot = HerpBot('irc.freenode.net')
+  bot = GangstaBot('irc.freenode.net')
   bot.connect()

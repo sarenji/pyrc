@@ -14,21 +14,21 @@ $ pip install pyrc
 import pyrc
 import pyrc.utils.hooks as hooks
 
-class YourBot(pyrc.Bot):
+class HiBot(pyrc.Bot):
   @hooks.command
   def sayhi(self, channel):
     self.message(channel, "hi!")
 
 if __name__ == '__main__':
-  bot = YourBot('irc.freenode.net')
+  bot = HiBot('irc.freenode.net')
   bot.connect()
 ```
 
 Then on IRC, after the bot logs in:
 
 ```
-<davidpeter> HarpBot, sayhi
-<HarpBot> hi!
+<davidpeter> HiBot, sayhi
+<HiBot> hi!
 ```
 
 ## TODO

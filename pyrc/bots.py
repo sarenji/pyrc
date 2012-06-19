@@ -9,12 +9,13 @@ class Bot(object):
     '''
     Initializes a new pyrc.Bot.
     '''
+    nick = "PyrcBot" if self.__class__ == Bot else self.__class__.__name__
     self.config = dict(kwargs)
     self.config.setdefault('host', host)
     self.config.setdefault('port', 6667)
-    self.config.setdefault('nick', "HarpBot")
-    self.config.setdefault('ident', "harpbot")
-    self.config.setdefault('realname', "David's Bot")
+    self.config.setdefault('nick', nick)
+    self.config.setdefault('ident', nick.lower())
+    self.config.setdefault('realname', "A Pyrc Bot")
 
     self._inbuffer = ""
     self._commands = []
