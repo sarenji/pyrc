@@ -16,6 +16,7 @@ class Bot(object):
     self.config.setdefault('host', host)
     self.config.setdefault('port', 6667)
     self.config.setdefault('nick', nick)
+    self.config.setdefault('names', [self.config['nick']])
     self.config.setdefault('ident', nick.lower())
     self.config.setdefault('realname', "A Pyrc Bot")
     self.config.setdefault('channels', [])
@@ -87,14 +88,25 @@ class Bot(object):
 
   def receivemessage(self, channel, nick, message):
     self.parsecommand(channel, message)
-    
+        
   def parsecommand(self, channel, message):
-    # Todo: Make the name matching case insensitive
-    nick_regex = r"^%s[,:]?\s+" % self.config['nick']
-    if not re.match(nick_regex, message):
+    # sort names so names that are substrings work
+    names = sorted(self.config['names'], key=len, reverse=True)
+    
+    name_used = None
+    message_lower = message.lower()
+    for name in names:
+      name_regex_str = r'^%s[,:]?\s+' % name 
+      name_regex = re.compile(name_regex_str, re.IGNORECASE)
+      if name_regex.match(message_lower):
+        name_used = name
+        break
+    
+    if not name_used:
       return
-
-    command = re.match(nick_regex + r'(.*)', message).group(1)
+      
+    message = message[len(name_used)::]
+    command = re.match(r'^[,:]?\s+(.*)', message).group(1)
     for command_func in self._commands:
       # TODO: Allow for regex matchers
       if command_func._matcher == command:
