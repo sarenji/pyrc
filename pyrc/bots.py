@@ -4,6 +4,8 @@ import socket
 import string
 import re
 
+import threads
+
 class Bot(object):
   def __init__(self, host, **kwargs):
     '''
@@ -20,6 +22,7 @@ class Bot(object):
 
     self._inbuffer = ""
     self._commands = []
+    self._threads = []
     self.socket = None
 
     self.parsecommands()
@@ -64,11 +67,19 @@ class Bot(object):
         channels = ' '.join(self.config['channels'])
         self.cmd("JOIN " + channels)
 
+        # TODO: This doesn't ensure that threads run at the right time, e.g.
+        # after the bot has joined every channel it needs to.
+        for thread in self._threads:
+          thread.run()
+
   def parsecommands(self):
     for func in self.__class__.__dict__.values():
       if callable(func) and hasattr(func, '_type'):
         if func._type == 'COMMAND':
           self._commands.append(func)
+        elif func._type == "REPEAT":
+          thread = threads.JobThread(func, self)
+          self._threads.append(thread)
         else:
           raise "This is not a type I've ever heard of."
 

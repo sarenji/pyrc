@@ -9,3 +9,12 @@ def command(func, matcher = None):
   wrapped_command._matcher = matcher
 
   return wrapped_command
+
+def repeat(interval):
+  def wrapped(func):
+    def wrapped_command(*args, **kwargs):
+      return func(*args, **kwargs)
+    wrapped_command._type = "REPEAT"
+    wrapped_command._interval = interval
+    return wrapped_command
+  return wrapped
