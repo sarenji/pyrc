@@ -16,6 +16,7 @@ class Bot(object):
     self.config.setdefault('host', host)
     self.config.setdefault('port', 6667)
     self.config.setdefault('nick', nick)
+    self.config.setdefault('names', [self.config['nick']])
     self.config.setdefault('ident', nick.lower())
     self.config.setdefault('realname', "A Pyrc Bot")
     self.config.setdefault('channels', [])
@@ -25,7 +26,7 @@ class Bot(object):
     self._threads = []
     self.socket = None
 
-    self.parsecommands()
+    self.addhooks()
 
   def message(self, recipient, s):
     "High level interface to sending an IRC message."
@@ -60,7 +61,9 @@ class Bot(object):
       host = line[length:]
       self.cmd("PONG %s" % host)
     elif re.match(r"^:\S+ PRIVMSG", line):
-      self.parsecommand(line)
+      msg_regex = r"^:(\S+)!\S+ PRIVMSG (\S+) :(.*)"
+      nick, channel, message = re.match(msg_regex, line).groups()
+      self.receivemessage(channel, nick, message)
     elif line.startswith(":" + self.config['nick']):
       # TODO: Improve the above. Should only join on MODE +i or something.
       if len(self.config['channels']) > 0:
@@ -72,7 +75,7 @@ class Bot(object):
         for thread in self._threads:
           thread.run()
 
-  def parsecommands(self):
+  def addhooks(self):
     for func in self.__class__.__dict__.values():
       if callable(func) and hasattr(func, '_type'):
         if func._type == 'COMMAND':
@@ -83,12 +86,27 @@ class Bot(object):
         else:
           raise "This is not a type I've ever heard of."
 
-  def parsecommand(self, line):
-    nick_regex = r"^:\S+ PRIVMSG (\S+) :%s[,:]?\s+" % self.config['nick']
-    if not re.match(nick_regex, line):
+  def receivemessage(self, channel, nick, message):
+    self.parsecommand(channel, message)
+        
+  def parsecommand(self, channel, message):
+    # sort names so names that are substrings work
+    names = sorted(self.config['names'], key=len, reverse=True)
+    
+    name_used = None
+    message_lower = message.lower()
+    for name in names:
+      name_regex_str = r'^%s[,:]?\s+' % name 
+      name_regex = re.compile(name_regex_str, re.IGNORECASE)
+      if name_regex.match(message_lower):
+        name_used = name
+        break
+    
+    if not name_used:
       return
-
-    channel, command = re.match(nick_regex + r'(.*)', line).groups()
+      
+    message = message[len(name_used)::]
+    command = re.match(r'^[,:]?\s+(.*)', message).group(1)
     for command_func in self._commands:
       # TODO: Allow for regex matchers
       if command_func._matcher == command:
