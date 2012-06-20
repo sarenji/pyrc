@@ -1,6 +1,6 @@
 from distutils.core import setup
 setup(name='pyrc',
-      version='0.6.0',
+      version='0.6.1',
       description='Simple, clean Python IRC library',
       author='David Peter',
       author_email='david.a.peter@gmail.com',
