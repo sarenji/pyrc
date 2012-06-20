@@ -25,7 +25,7 @@ class Bot(object):
     self._threads = []
     self.socket = None
 
-    self.parsecommands()
+    self.addhooks()
 
   def message(self, recipient, s):
     "High level interface to sending an IRC message."
@@ -72,7 +72,7 @@ class Bot(object):
         for thread in self._threads:
           thread.run()
 
-  def parsecommands(self):
+  def addhooks(self):
     for func in self.__class__.__dict__.values():
       if callable(func) and hasattr(func, '_type'):
         if func._type == 'COMMAND':
