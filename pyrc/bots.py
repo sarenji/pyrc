@@ -60,7 +60,9 @@ class Bot(object):
       host = line[length:]
       self.cmd("PONG %s" % host)
     elif re.match(r"^:\S+ PRIVMSG", line):
-      self.parsecommand(line)
+      msg_regex = r"^:(\S+)!\S+ PRIVMSG (\S+) :(.*)"
+      nick, channel, message = re.match(msg_regex, line).groups()
+      self.receivemessage(channel, nick, message)
     elif line.startswith(":" + self.config['nick']):
       # TODO: Improve the above. Should only join on MODE +i or something.
       if len(self.config['channels']) > 0:
@@ -83,12 +85,16 @@ class Bot(object):
         else:
           raise "This is not a type I've ever heard of."
 
-  def parsecommand(self, line):
-    nick_regex = r"^:\S+ PRIVMSG (\S+) :%s[,:]?\s+" % self.config['nick']
-    if not re.match(nick_regex, line):
+  def receivemessage(self, channel, nick, message):
+    self.parsecommand(channel, message)
+    
+  def parsecommand(self, channel, message):
+    # Todo: Make the name matching case insensitive
+    nick_regex = r"^%s[,:]?\s+" % self.config['nick']
+    if not re.match(nick_regex, message):
       return
 
-    channel, command = re.match(nick_regex + r'(.*)', line).groups()
+    command = re.match(nick_regex + r'(.*)', message).group(1)
     for command_func in self._commands:
       # TODO: Allow for regex matchers
       if command_func._matcher == command:
