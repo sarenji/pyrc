@@ -17,4 +17,4 @@ class JobThread(threading.Thread):
     """Keep running this thread until it's stopped"""
     while not self._finished.isSet():
       self._func(self._reference)
-      self._finished.wait(self._func._interval / 1000)
+      self._finished.wait(self._func._interval / 1000.0)
