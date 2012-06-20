@@ -7,7 +7,7 @@ class GangstaBot(pyrc.Bot):
     "will print yo"
     self.message(channel, "yo")
 
-  @hooks.repeat(10000)
+  @hooks.interval(10000)
   def keeprepeating(self):
     "will say something"
     self.message("#turntechgodhead", "stop repeating myself")

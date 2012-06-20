@@ -13,12 +13,12 @@ def command(func, matcher = None):
 
   return wrapped_command
 
-def repeat(interval):
+def interval(milliseconds):
   def wrapped(func):
     @functools.wraps(func)
     def wrapped_command(*args, **kwargs):
       return func(*args, **kwargs)
     wrapped_command._type = "REPEAT"
-    wrapped_command._interval = interval
+    wrapped_command._interval = milliseconds
     return wrapped_command
   return wrapped
