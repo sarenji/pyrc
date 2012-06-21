@@ -38,11 +38,21 @@ class Bot(object):
     '''
     self._connect()
 
-    # Constantly listens to the input from the server. Since the messages come
-    # in pieces, we wait until we receive 1 or more full lines to start parsing.
-    #
-    # A new line is defined as ending in \r\n in the RFC, but some servers
-    # separate by \n. This script takes care of both.
+    try:
+      self.listen()
+    except (KeyboardInterrupt, SystemExit):
+      pass
+    finally:
+      self.close()
+
+  def listen(self):
+    """
+    Constantly listens to the input from the server. Since the messages come
+    in pieces, we wait until we receive 1 or more full lines to start parsing.
+
+    A new line is defined as ending in \r\n in the RFC, but some servers
+    separate by \n. This script takes care of both.
+    """
     while True:
       self._inbuffer = self._inbuffer + self.socket.recv(1024)
       # Some IRC servers disregard the RFC and split lines by \n rather than \r\n.
@@ -121,3 +131,8 @@ class Bot(object):
     self.cmd("NICK %s" % self.config['nick'])
     self.cmd("USER %s %s bla :%s" %
         (self.config['ident'], self.config['host'], self.config['realname']))
+
+  def close(self):
+    for thread in self._threads:
+      thread.shutdown()
+    self.socket.close()
