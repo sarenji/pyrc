@@ -64,7 +64,7 @@ class Bot(object):
       msg_regex = r"^:(\S+)!\S+ PRIVMSG (\S+) :(.*)"
       nick, channel, message = re.match(msg_regex, line).groups()
       self.receivemessage(channel, nick, message)
-    elif line.startswith(":" + self.config['nick']):
+    elif line.startswith(":" + self.config['nick'] + " MODE"):
       # TODO: Improve the above. Should only join on MODE +i or something.
       if len(self.config['channels']) > 0:
         channels = ' '.join(self.config['channels'])
@@ -73,7 +73,7 @@ class Bot(object):
         # TODO: This doesn't ensure that threads run at the right time, e.g.
         # after the bot has joined every channel it needs to.
         for thread in self._threads:
-          thread.run()
+          thread.start()
 
   def addhooks(self):
     for func in self.__class__.__dict__.values():
