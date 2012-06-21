@@ -88,24 +88,23 @@ class Bot(object):
 
   def receivemessage(self, channel, nick, message):
     self.parsecommand(channel, message)
-        
+
   def parsecommand(self, channel, message):
     # sort names so names that are substrings work
     names = sorted(self.config['names'], key=len, reverse=True)
-    
+
     name_used = None
-    message_lower = message.lower()
     for name in names:
-      name_regex_str = r'^%s[,:]?\s+' % name 
+      name_regex_str = r'^%s[,:]?\s+' % name
       name_regex = re.compile(name_regex_str, re.IGNORECASE)
-      if name_regex.match(message_lower):
+      if name_regex.match(message):
         name_used = name
         break
-    
+
     if not name_used:
       return
-      
-    message = message[len(name_used)::]
+
+    message = message[len(name_used):]
     command = re.match(r'^[,:]?\s+(.*)', message).group(1)
     for command_func in self._commands:
       # TODO: Allow for regex matchers
