@@ -135,4 +135,5 @@ class Bot(object):
   def close(self):
     for thread in self._threads:
       thread.shutdown()
+    self.socket.shutdown()
     self.socket.close()
