@@ -56,12 +56,13 @@ class Bot(object):
     while True:
       self._inbuffer = self._inbuffer + self.socket.recv(1024)
       # Some IRC servers disregard the RFC and split lines by \n rather than \r\n.
-      temp = string.split(self._inbuffer, "\n")
+      
+      temp = self._inbuffer.split("\n")
       self._inbuffer = temp.pop()
 
       for line in temp:
         # Strip \r from \r\n for RFC-compliant IRC servers.
-        line = string.rstrip(line, '\r')
+        line = line.rstrip('\r')
         self.parseline(line)
         print line
 
@@ -71,16 +72,14 @@ class Bot(object):
       host = line[length:]
       self.cmd("PONG %s" % host)
     elif re.match(r"^:\S+ PRIVMSG", line):
-      msg_regex = r"^:(\S+)!\S+ PRIVMSG (\S+) :(.*)"
+      msg_regex = re.compile(r"^:(\S+)!\S+ PRIVMSG (\S+) :(.*)")
       nick, channel, message = re.match(msg_regex, line).groups()
       self.receivemessage(channel, nick, message)
-    elif line.startswith(":" + self.config['nick'] + " MODE"):
+    elif line.startswith(":%s MODE" % self.config['nick']):
       # TODO: Improve the above. Should only join on MODE +i or something.
-      if len(self.config['channels']) > 0:
-        channels = ' '.join(self.config['channels'])
-        self.cmd("JOIN " + channels)
-
-        # TODO: This doesn't ensure that threads run at the right time, e.g.
+      if self.config['channels']:
+        self.cmd("JOIN %s" % ' '.join(self.config['channels']))
+        # TODO: This doesn't ensure that threads run atf the right time, e.g.
         # after the bot has joined every channel it needs to.
         for thread in self._threads:
           thread.start()
@@ -105,16 +104,16 @@ class Bot(object):
 
     name_used = None
     for name in names:
-      name_regex_str = r'^%s[,:]?\s+' % name
+      name_regex_str = r'^%s[,:]?\s+' % re.escape(name)
       name_regex = re.compile(name_regex_str, re.IGNORECASE)
       if name_regex.match(message):
         name_used = name
         break
-
+      
     if not name_used:
       return
 
-    message = message[len(name_used):]
+    _,_,message = message.partition(name_used)
     command = re.match(r'^[,:]?\s+(.*)', message).group(1)
     for command_func in self._commands:
       # TODO: Allow for regex matchers

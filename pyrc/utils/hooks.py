@@ -1,6 +1,6 @@
 import functools
 
-def command(func, matcher = None):
+def command(func, matcher=None):
   # Default the command's name to the function's name.
   if matcher is None:
     matcher = func.func_name
