@@ -56,7 +56,7 @@ class Bot(object):
     while True:
       self._inbuffer = self._inbuffer + self.socket.recv(1024)
       # Some IRC servers disregard the RFC and split lines by \n rather than \r\n.
-      
+
       temp = self._inbuffer.split("\n")
       self._inbuffer = temp.pop()
 
@@ -75,6 +75,10 @@ class Bot(object):
       msg_regex = re.compile(r"^:(\S+)!\S+ PRIVMSG (\S+) :(.*)")
       nick, channel, message = re.match(msg_regex, line).groups()
       self.receivemessage(channel, nick, message)
+    elif re.match(r"^:\S+ INVITE %s" % self.config['nick'], line):
+      msg_regex = re.compile(r"^:(\S+)!\S+ INVITE \S+ :?(.*)")
+      inviter, channel = re.match(msg_regex, line).groups()
+      self.cmd("JOIN %s" % channel)
     elif line.startswith(":%s MODE" % self.config['nick']):
       # TODO: Improve the above. Should only join on MODE +i or something.
       if self.config['channels']:
@@ -109,7 +113,7 @@ class Bot(object):
       if name_regex.match(message):
         name_used = name
         break
-      
+
     if not name_used:
       return
 
