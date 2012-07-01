@@ -108,10 +108,10 @@ class Bot(object):
 
     name_used = None
     for name in names:
-      name_regex_str = r'^%s[,:]?\s+' % re.escape(name)
+      name_regex_str = r'^(%s)[,:]?\s+' % re.escape(name)
       name_regex = re.compile(name_regex_str, re.IGNORECASE)
       if name_regex.match(message):
-        name_used = name
+        name_used = name_regex.match(message).group(1)
         break
 
     if not name_used:
