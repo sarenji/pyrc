@@ -79,14 +79,17 @@ class Bot(object):
       msg_regex = re.compile(r"^:(\S+)!\S+ INVITE \S+ :?(.*)")
       inviter, channel = re.match(msg_regex, line).groups()
       self.cmd("JOIN %s" % channel)
-    elif line.startswith(":%s MODE" % self.config['nick']):
-      # TODO: Improve the above. Should only join on MODE +i or something.
+    elif re.match(r"^\S+ MODE %s :\+\w*i" % self.config['nick'], line)\
+        and self.config['password']:
+      # Autoidentify if a password is provided
+      self.cmd("PRIVMSG NickServ :identify %s" % self.config['password'])
+    elif re.match(r"^:\S+ MODE", line):
       if self.config['channels']:
         self.cmd("JOIN %s" % ' '.join(self.config['channels']))
-        # TODO: This doesn't ensure that threads run atf the right time, e.g.
-        # after the bot has joined every channel it needs to.
-        for thread in self._threads:
-          thread.start()
+      # TODO: This doesn't ensure that threads run at the right time, e.g.
+      # after the bot has joined every channel it needs to.
+      for thread in self._threads:
+        thread.start()
 
   def addhooks(self):
     for func in self.__class__.__dict__.values():
