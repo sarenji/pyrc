@@ -25,6 +25,7 @@ class Bot(object):
     self._commands = []
     self._threads = []
     self.socket = None
+    self.initialized = False
 
     self.addhooks()
 
@@ -83,7 +84,8 @@ class Bot(object):
         and self.config['password']:
       # Autoidentify if a password is provided
       self.cmd("PRIVMSG NickServ :identify %s" % self.config['password'])
-    elif re.match(r"^:\S+ MODE", line):
+    elif re.match(r"^:\S+ MODE", line) and not self.initialized:
+      self.initialized = True
       if self.config['channels']:
         self.cmd("JOIN %s" % ' '.join(self.config['channels']))
       # TODO: This doesn't ensure that threads run at the right time, e.g.
