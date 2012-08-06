@@ -125,8 +125,7 @@ class Bot(object):
     _,_,message = message.partition(name_used)
     command = re.match(r'^[,:]?\s+(.*)', message).group(1)
     for command_func in self._commands:
-      # TODO: Allow for regex matchers
-      if command_func._matcher == command:
+      if command_func._matcher.search(command):
         command_func(self, channel)
 
   def cmd(self, raw_line):

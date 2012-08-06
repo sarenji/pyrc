@@ -1,17 +1,25 @@
 import functools
+import re
 
-def command(func, matcher=None):
-  # Default the command's name to the function's name.
-  if matcher is None:
-    matcher = func.func_name
+class command(object):
+  def __init__(self, matcher=None):
+    self._matcher = matcher
 
-  @functools.wraps(func)
-  def wrapped_command(*args, **kwargs):
-    return func(*args, **kwargs)
-  wrapped_command._type = "COMMAND"
-  wrapped_command._matcher = matcher
+  def __call__(self, func):
+    # Default the command's name to the function's name.
+    matcher = self._matcher
+    if matcher is None:
+      matcher = func.func_name
 
-  return wrapped_command
+    # convert matcher to regular expression
+    matcher = re.compile(matcher)
+
+    @functools.wraps(func)
+    def wrapped_command(*args, **kwargs):
+      return func(*args, **kwargs)
+    wrapped_command._type = "COMMAND"
+    wrapped_command._matcher = matcher
+    return wrapped_command
 
 def interval(milliseconds):
   def wrapped(func):
