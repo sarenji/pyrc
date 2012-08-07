@@ -20,6 +20,7 @@ class Bot(object):
     self.config.setdefault('ident', nick.lower())
     self.config.setdefault('realname', "A Pyrc Bot")
     self.config.setdefault('channels', [])
+    self.config.setdefault('password', None)
 
     self._inbuffer = ""
     self._commands = []
