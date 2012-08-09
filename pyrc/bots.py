@@ -126,8 +126,9 @@ class Bot(object):
     _,_,message = message.partition(name_used)
     command = re.match(r'^[,:]?\s+(.*)', message).group(1)
     for command_func in self._commands:
-      if command_func._matcher.search(command):
-        command_func(self, channel)
+      match = command_func._matcher.search(command)
+      if match:
+        command_func(self, channel, *match.groups(), **match.groupdict())
 
   def cmd(self, raw_line):
     self.socket.send(raw_line + "\r\n")
