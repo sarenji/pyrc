@@ -131,6 +131,7 @@ class Bot(object):
         command_func(self, channel, *match.groups(), **match.groupdict())
 
   def cmd(self, raw_line):
+    print "> %s" % raw_line
     self.socket.send(raw_line + "\r\n")
 
   def _connect(self):
