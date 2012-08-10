@@ -15,7 +15,7 @@ import pyrc
 import pyrc.utils.hooks as hooks
 
 class HiBot(pyrc.Bot):
-  @hooks.command
+  @hooks.command()
   def sayhi(self, channel):
     self.message(channel, "hi!")
 
