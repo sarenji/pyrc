@@ -33,5 +33,5 @@ Then on IRC, after the bot logs in:
 
 ## TODO
 
-* Less strict commands. Add ability to define regex commands.
-* Fix hacky joining of channels.
+* Modularize library better.
+* Make syntax more like Flask.
