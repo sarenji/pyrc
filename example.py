@@ -2,7 +2,7 @@ import pyrc
 import pyrc.utils.hooks as hooks
 
 class GangstaBot(pyrc.Bot):
-  @hooks.command
+  @hooks.command()
   def bling(self, channel):
     "will print yo"
     self.message(channel, "yo")
