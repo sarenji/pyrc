@@ -6,10 +6,11 @@ class command(object):
     self._matcher = matcher
 
   def __call__(self, func):
-    # Default the command's name to the function's name.
+    # Default the command's name to an exact match of the function's name.
+    # ^func_name$
     matcher = self._matcher
     if matcher is None:
-      matcher = func.func_name
+      matcher = r'^%s$' % func.func_name
 
     # convert matcher to regular expression
     matcher = re.compile(matcher)
