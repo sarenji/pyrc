@@ -3,6 +3,7 @@ import sys
 import socket
 import string
 import re
+import os
 
 import threads
 
@@ -12,6 +13,8 @@ class Bot(object):
     Initializes a new pyrc.Bot.
     '''
     nick = "PyrcBot" if self.__class__ == Bot else self.__class__.__name__
+    password = os.environ.get('PASSWORD', None)
+
     self.config = dict(kwargs)
     self.config.setdefault('host', host)
     self.config.setdefault('port', 6667)
@@ -20,7 +23,7 @@ class Bot(object):
     self.config.setdefault('ident', nick.lower())
     self.config.setdefault('realname', "A Pyrc Bot")
     self.config.setdefault('channels', [])
-    self.config.setdefault('password', None)
+    self.config.setdefault('password', password)
     self.config.setdefault('break_on_match', False)
 
     self._inbuffer = ""
