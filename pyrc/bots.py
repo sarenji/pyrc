@@ -109,26 +109,29 @@ class Bot(object):
     self.parsecommand(channel, message)
 
   def parsecommand(self, channel, message):
-    # sort names so names that are substrings work
-    names = sorted(self.config['names'], key=len, reverse=True)
+    name = self.name_used(message)
 
-    name_used = None
-    for name in names:
-      name_regex_str = r'^(%s)[,:]?\s+' % re.escape(name)
-      name_regex = re.compile(name_regex_str, re.IGNORECASE)
-      if name_regex.match(message):
-        name_used = name_regex.match(message).group(1)
-        break
-
-    if not name_used:
+    if not name:
       return
 
-    _,_,message = message.partition(name_used)
+    _,_,message = message.partition(name)
     command = re.match(r'^[,:]?\s+(.*)', message).group(1)
     for command_func in self._commands:
       match = command_func._matcher.search(command)
       if match:
         command_func(self, channel, *match.groups(), **match.groupdict())
+
+  def name_used(self, message):
+    # sort names so names that are substrings work
+    names = sorted(self.config['names'], key=len, reverse=True)
+
+    for name in names:
+      name_regex_str = r'^(%s)[,:]?\s+' % re.escape(name)
+      name_regex = re.compile(name_regex_str, re.IGNORECASE)
+      if name_regex.match(message):
+        return name_regex.match(message).group(1)
+
+    return None
 
   def cmd(self, raw_line):
     print "> %s" % raw_line
