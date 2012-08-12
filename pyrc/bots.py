@@ -24,7 +24,7 @@ class Bot(object):
     self.config.setdefault('realname', "A Pyrc Bot")
     self.config.setdefault('channels', [])
     self.config.setdefault('password', password)
-    self.config.setdefault('break_on_match', False)
+    self.config.setdefault('break_on_match', True)
 
     self._inbuffer = ""
     self._commands = []
