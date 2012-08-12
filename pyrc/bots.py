@@ -123,7 +123,16 @@ class Bot(object):
     for command_func in self._commands:
       match = command_func._matcher.search(command)
       if match:
-        command_func(self, channel, *match.groups(), **match.groupdict())
+        group_dict = match.groupdict()
+        groups = match.groups()
+        if group_dict and (len(groups) > len(group_dict)):
+          # match.groups() also returns named parameters
+          raise "You cannot use both named and unnamed parameters"
+        elif group_dict:
+          command_func(self, channel, **group_dict)
+        else:
+          command_func(self, channel, *groups)
+        
         if self.config['break_on_match']: break
 
   def name_used(self, message):
