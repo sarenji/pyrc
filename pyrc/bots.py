@@ -21,6 +21,7 @@ class Bot(object):
     self.config.setdefault('realname', "A Pyrc Bot")
     self.config.setdefault('channels', [])
     self.config.setdefault('password', None)
+    self.config.setdefault('break_on_match', False)
 
     self._inbuffer = ""
     self._commands = []
@@ -120,6 +121,7 @@ class Bot(object):
       match = command_func._matcher.search(command)
       if match:
         command_func(self, channel, *match.groups(), **match.groupdict())
+        if self.config['break_on_match']: break
 
   def name_used(self, message):
     # sort names so names that are substrings work
