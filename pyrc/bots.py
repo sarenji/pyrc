@@ -138,6 +138,9 @@ class Bot(object):
 
     return None
 
+  def join(self, *channels):
+    self.cmd('JOIN %s' % (' '.join(channels)))
+
   def cmd(self, raw_line):
     print "> %s" % raw_line
     self.socket.send(raw_line + "\r\n")
@@ -177,7 +180,7 @@ class Bot(object):
     self.receivemessage(channel, nick, message)
 
   def _invite(self, inviter, channel):
-    self.cmd("JOIN %s" % channel)
+    self.join(channel)
 
   def _mode(self, modes):
     if 'i' in modes and self.should_autoident():
@@ -188,7 +191,7 @@ class Bot(object):
     if ('r' in modes or not self.should_autoident()) and not self.initialized:
       self.initialized = True
       if self.config['channels']:
-        self.cmd("JOIN %s" % ' '.join(self.config['channels']))
+        self.join(*self.config['channels'])
       # TODO: This doesn't ensure that threads run at the right time, e.g.
       # after the bot has joined every channel it needs to.
       for thread in self._threads:
