@@ -31,7 +31,9 @@ class Bot(object):
     self._threads = []
     self.socket = None
     self.initialized = False
+    self.listeners = {}
 
+    self.add_listeners()
     self.addhooks()
 
   def message(self, recipient, s):
@@ -69,34 +71,23 @@ class Bot(object):
       for line in temp:
         # Strip \r from \r\n for RFC-compliant IRC servers.
         line = line.rstrip('\r')
-        self.parseline(line)
+        self.run_listeners(line)
         print line
 
-  def parseline(self, line):
-    if line.startswith("PING"):
-      length = len("PING ")
-      host = line[length:]
-      self.cmd("PONG %s" % host)
-    elif re.match(r"^:\S+ PRIVMSG", line):
-      msg_regex = re.compile(r"^:(\S+)!\S+ PRIVMSG (\S+) :(.*)")
-      nick, channel, message = re.match(msg_regex, line).groups()
-      self.receivemessage(channel, nick, message)
-    elif re.match(r"^:\S+ INVITE %s" % self.config['nick'], line):
-      msg_regex = re.compile(r"^:(\S+)!\S+ INVITE \S+ :?(.*)")
-      inviter, channel = re.match(msg_regex, line).groups()
-      self.cmd("JOIN %s" % channel)
-    elif re.match(r"^\S+ MODE %s :\+\w*i" % self.config['nick'], line)\
-        and self.config['password']:
-      # Autoidentify if a password is provided
-      self.cmd("PRIVMSG NickServ :identify %s" % self.config['password'])
-    elif re.match(r"^:\S+ MODE", line) and not self.initialized:
-      self.initialized = True
-      if self.config['channels']:
-        self.cmd("JOIN %s" % ' '.join(self.config['channels']))
-      # TODO: This doesn't ensure that threads run at the right time, e.g.
-      # after the bot has joined every channel it needs to.
-      for thread in self._threads:
-        thread.start()
+  def run_listeners(self, line):
+    """
+    Each listener's associated regular expression is matched against raw IRC
+    input. If there is a match, the listener's associated function is called
+    with all the regular expression's matched subgroups.
+    """
+    for regex, callbacks in self.listeners.iteritems():
+      match = re.match(regex, line)
+
+      if not match:
+        continue
+
+      for callback in callbacks:
+        callback(*match.groups())
 
   def addhooks(self):
     for func in self.__class__.__dict__.values():
@@ -164,3 +155,45 @@ class Bot(object):
       thread.shutdown()
     self.socket.shutdown(socket.SHUT_RDWR)
     self.socket.close()
+
+
+  def add_listeners(self):
+    self.add_listener(r'^PING :(.*)', self._ping)
+    self.add_listener(r'^:(\S+)!\S+ PRIVMSG (\S+) :(.*)', self._privmsg)
+    self.add_listener(r'^:(\S+)!\S+ INVITE \S+ :?(.*)', self._invite)
+    self.add_listener(r'^\S+ MODE %s :\+([a-zA-Z]+)' % self.config['nick'],
+        self._mode)
+
+  def add_listener(self, regex, func):
+    array = self.listeners.setdefault(regex, [])
+    array.append(func)
+
+  # Default listeners
+
+  def _ping(self, host):
+    self.cmd("PONG :%s" % host)
+
+  def _privmsg(self, nick, channel, message):
+    self.receivemessage(channel, nick, message)
+
+  def _invite(self, inviter, channel):
+    self.cmd("JOIN %s" % channel)
+
+  def _mode(self, modes):
+    if 'i' in modes and self.should_autoident():
+      self.cmd("PRIVMSG NickServ :identify %s" % self.config['password'])
+
+    # Initialize (join rooms and start threads) if the bot is not
+    # auto-identifying, or has just identified.
+    if ('r' in modes or not self.should_autoident()) and not self.initialized:
+      self.initialized = True
+      if self.config['channels']:
+        self.cmd("JOIN %s" % ' '.join(self.config['channels']))
+      # TODO: This doesn't ensure that threads run at the right time, e.g.
+      # after the bot has joined every channel it needs to.
+      for thread in self._threads:
+        thread.start()
+
+  def should_autoident(self):
+    return self.config['password']
+
