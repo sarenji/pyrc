@@ -1,6 +1,6 @@
 # pyrc
 
-Slim, concise IRC client. Also cute.
+Slim, concise IRC bot library. Also cute.
 
 ## Installation
 
