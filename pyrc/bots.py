@@ -71,8 +71,8 @@ class Bot(object):
       for line in temp:
         # Strip \r from \r\n for RFC-compliant IRC servers.
         line = line.rstrip('\r')
-        self.run_listeners(line)
         print line
+        self.run_listeners(line)
 
   def run_listeners(self, line):
     """
