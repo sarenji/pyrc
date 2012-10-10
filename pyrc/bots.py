@@ -25,6 +25,7 @@ class Bot(object):
     self.config.setdefault('channels', [])
     self.config.setdefault('password', password)
     self.config.setdefault('break_on_match', True)
+    self.config.setdefault('verbose', True)
 
     self._inbuffer = ""
     self._commands = []
@@ -71,7 +72,7 @@ class Bot(object):
       for line in temp:
         # Strip \r from \r\n for RFC-compliant IRC servers.
         line = line.rstrip('\r')
-        print line
+        if self.config['verbose']: print line
         self.run_listeners(line)
 
   def run_listeners(self, line):
@@ -142,7 +143,7 @@ class Bot(object):
     self.cmd('JOIN %s' % (' '.join(channels)))
 
   def cmd(self, raw_line):
-    print "> %s" % raw_line
+    if self.config['verbose']: print "> %s" % raw_line
     self.socket.send(raw_line + "\r\n")
 
   def _connect(self):
