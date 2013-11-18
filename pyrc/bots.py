@@ -128,8 +128,8 @@ class Bot(object):
   def bot_called(self, message):
     """
     Checks if the bot was called by a user.
-    This includes nick highlighting and adding a set 
-    prefix infront of the command.
+    This includes nick highlighting and prepending a set 
+    prefix to the command.
     """
     # sort names so names that are substrings work
     names = sorted(self.config['names'], key=len, reverse=True)
