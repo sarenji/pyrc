@@ -26,6 +26,7 @@ class Bot(object):
     self.config.setdefault('password', password)
     self.config.setdefault('break_on_match', True)
     self.config.setdefault('verbose', True)
+    self.config.setdefault('prefix', '%')
 
     self._inbuffer = ""
     self._commands = []
@@ -105,13 +106,10 @@ class Bot(object):
     self.parsecommand(channel, message)
 
   def parsecommand(self, channel, message):
-    name = self.name_used(message)
-
-    if not name:
+    command = self.bot_called(message)
+    if not command:
       return
 
-    _,_,message = message.partition(name)
-    command = re.match(r'^[,:]?\s+(.*)', message).group(1)
     for command_func in self._commands:
       match = command_func._matcher.search(command)
       if match:
@@ -127,15 +125,27 @@ class Bot(object):
         
         if self.config['break_on_match']: break
 
-  def name_used(self, message):
+  def bot_called(self, message):
+    """
+    Checks if the bot was called by a user.
+    This includes nick highlighting and prepending a set 
+    prefix to the command.
+    """
     # sort names so names that are substrings work
     names = sorted(self.config['names'], key=len, reverse=True)
+    prefix = self.config['prefix']
 
-    for name in names:
-      name_regex_str = r'^(%s)[,:]?\s+' % re.escape(name)
-      name_regex = re.compile(name_regex_str, re.IGNORECASE)
-      if name_regex.match(message):
-        return name_regex.match(message).group(1)
+    """
+    regex example:
+    ^(((BotA|BotB)[,:]?\s+)|%)(.+)$
+    
+    names = [BotA, BotB]
+    prefix = %
+    """
+    name_regex_str = r'^(((%s)[,:]?\s+)|%s)(.+)$' % (re.escape("|".join(names)), prefix)
+    name_regex = re.compile(name_regex_str, re.IGNORECASE)
+    if name_regex.match(message):
+      return name_regex.match(message).group(4)
 
     return None
 
