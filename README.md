@@ -16,7 +16,7 @@ import pyrc.utils.hooks as hooks
 
 class HiBot(pyrc.Bot):
   @hooks.command()
-  def sayhi(self, channel):
+  def sayhi(self, channel, sender):
     self.message(channel, "hi!")
 
 if __name__ == '__main__':

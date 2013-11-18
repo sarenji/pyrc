@@ -3,9 +3,9 @@ import pyrc.utils.hooks as hooks
 
 class GangstaBot(pyrc.Bot):
   @hooks.command()
-  def bling(self, channel):
+  def bling(self, channel, sender):
     "will print yo"
-    self.message(channel, "yo")
+    self.message(channel, "%s: yo" % sender)
 
   @hooks.interval(10000)
   def keeprepeating(self):

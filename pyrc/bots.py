@@ -102,10 +102,10 @@ class Bot(object):
         else:
           raise "This is not a type I've ever heard of."
 
-  def receivemessage(self, channel, nick, message):
-    self.parsecommand(channel, message)
+  def receivemessage(self, channel, sender, message):
+    self.parsecommand(channel, sender, message)
 
-  def parsecommand(self, channel, message):
+  def parsecommand(self, channel, sender, message):
     command = self.bot_called(message)
     if not command:
       return
@@ -119,9 +119,9 @@ class Bot(object):
           # match.groups() also returns named parameters
           raise "You cannot use both named and unnamed parameters"
         elif group_dict:
-          command_func(self, channel, **group_dict)
+          command_func(self, channel, sender, **group_dict)
         else:
-          command_func(self, channel, *groups)
+          command_func(self, channel, sender, *groups)
         
         if self.config['break_on_match']: break
 
