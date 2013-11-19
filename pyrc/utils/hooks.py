@@ -22,6 +22,21 @@ class command(object):
     wrapped_command._matcher = matcher
     return wrapped_command
 
+class privmsg(object):
+  def __init__(self, matcher=None):
+    self._matcher = matcher
+
+  def __call__(self, func):
+    # convert matcher to regular expression
+    matcher = re.compile(self._matcher)
+
+    @functools.wraps(func)
+    def wrapped_command(*args, **kwargs):
+      return func(*args, **kwargs)
+    wrapped_command._type = "PRIVMSG"
+    wrapped_command._matcher = matcher
+    return wrapped_command
+
 def interval(milliseconds):
   def wrapped(func):
     @functools.wraps(func)

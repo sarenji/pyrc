@@ -30,6 +30,7 @@ class Bot(object):
 
     self._inbuffer = ""
     self._commands = []
+    self._privmsgs = []
     self._threads = []
     self.socket = None
     self.initialized = False
@@ -96,25 +97,32 @@ class Bot(object):
       if callable(func) and hasattr(func, '_type'):
         if func._type == 'COMMAND':
           self._commands.append(func)
-        elif func._type == "REPEAT":
+        elif func._type == 'PRIVMSG':
+          self._privmsgs.append(func)
+        elif func._type == 'REPEAT':
           thread = threads.JobThread(func, self)
           self._threads.append(thread)
         else:
           raise "This is not a type I've ever heard of."
 
   def receivemessage(self, channel, sender, message):
-    self.parsecommand(channel, sender, message)
+    to_continue = self.parsecommand(channel, sender, message)
+    if not to_continue:
+      return
+
+    to_continue = self.parseprivmsg(channel, sender, message)
 
   def parsecommand(self, channel, sender, message):
     command = self.bot_called(message)
     if not command:
-      return
+      return False
 
     for command_func in self._commands:
       match = command_func._matcher.search(command)
       if match:
         group_dict = match.groupdict()
         groups = match.groups()
+
         if group_dict and (len(groups) > len(group_dict)):
           # match.groups() also returns named parameters
           raise "You cannot use both named and unnamed parameters"
@@ -123,7 +131,26 @@ class Bot(object):
         else:
           command_func(self, channel, sender, *groups)
         
-        if self.config['break_on_match']: break
+        if self.config['break_on_match']: return True
+    return False
+
+  def parseprivmsg(self, channel, sender, message):
+    for privmsg_func in self._privmsgs:
+      match = privmsg_func._matcher.search(message)
+      if match:
+        group_dict = match.groupdict()
+        groups = match.groups()
+
+        if group_dict and (len(groups) > len(group_dict)):
+          # match.groups() also returns named parameters
+          raise "You cannot use both named and unnamed parameters"
+        elif group_dict:
+           privmsg_func(self, channel, sender, **group_dict)
+        else:
+          privmsg_func(self, channel, sender, *groups)
+      
+        if self.config['break_on_match']: return True
+    return False
 
   def bot_called(self, message):
     """
