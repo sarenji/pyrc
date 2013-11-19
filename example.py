@@ -7,6 +7,19 @@ class GangstaBot(pyrc.Bot):
     "will print yo"
     self.message(channel, "%s: yo" % sender)
 
+  @hooks.command("^repeat\s+(?P<msg>.+)$")
+  def repeat(self, channel, sender, **kwargs):
+    "will repeat whatever yo say"
+    self.message(channel, "%s: %s" % (sender, kwargs["msg"]))
+
+  @hooks.privmsg("(lol|lmao|rofl(mao)?)")
+  def stopword(self, channel, sender, *args):
+    """
+    will repeat 'lol', 'lmao, 'rofl' or 'roflmao' when seen in a message
+    """
+    print(args)
+    self.message(channel, args[0])
+
   @hooks.interval(10000)
   def keeprepeating(self):
     "will say something"
