@@ -107,18 +107,18 @@ class Bot(object):
         else:
           raise "This is not a type I've ever heard of."
 
-  def receivemessage(self, channel, sender, message):
+  def receivemessage(self, target, sender, message):
     message = message.strip()
-
     to_continue = True
+    
     suffix = self.strip_prefix(message)
     if suffix:
-      to_continue = self.parsefuncs(channel, sender, suffix, self._commands)
+      to_continue = self.parsefuncs(target, sender, suffix, self._commands)
     
     # if no command was executed
     if to_continue:
       to_continue = self.parsefuncs(channel, sender, message, self._privmsgs)
-
+  
   def parsefuncs(self, channel, sender, message, funcs):
     for func in funcs:
       match = func._matcher.search(message)
@@ -130,7 +130,7 @@ class Bot(object):
           # match.groups() also returns named parameters
           raise "You cannot use both named and unnamed parameters"
         elif group_dict:
-          func(self, channel, sender, **group_dict)
+          func(self, target, sender, **group_dict)
         else:
           func(self, channel, sender, *groups)
 
@@ -207,8 +207,8 @@ class Bot(object):
   def _ping(self, host):
     self.cmd("PONG :%s" % host)
 
-  def _privmsg(self, nick, channel, message):
-    self.receivemessage(channel, nick, message)
+  def _privmsg(self, sender, target, message):
+    self.receivemessage(sender, target, message)
 
   def _invite(self, inviter, channel):
     self.join(channel)
