@@ -36,8 +36,10 @@ class Bot(object):
     self.initialized = False
     self.listeners = {}
 
+    # init funcs
     self.add_listeners()
     self.addhooks()
+    self.compile_regex()
 
   def message(self, recipient, s):
     "High level interface to sending an IRC message."
@@ -84,7 +86,7 @@ class Bot(object):
     with all the regular expression's matched subgroups.
     """
     for regex, callbacks in self.listeners.iteritems():
-      match = re.match(regex, line)
+      match = regex.match(line)
 
       if not match:
         continue
@@ -135,17 +137,10 @@ class Bot(object):
         if self.config['break_on_match']: return False
     return True
 
-  def strip_prefix(self, message):
-    """
-    Checks if the bot was called by a user.
-    Returns the suffix if so.
+  def compile_regex(self):
+    self.compile_strip_prefix()
 
-    Prefixes include the bot's nick as well as a set symbol.
-    """
-    # sort names so names that are substrings work
-    names = sorted(self.config['names'], key=len, reverse=True)
-    prefix = self.config['prefix']
-
+  def compile_strip_prefix(self):
     """
     regex example:
     ^(((BotA|BotB)[,:]?\s+)|%)(.+)$
@@ -153,10 +148,24 @@ class Bot(object):
     names = [BotA, BotB]
     prefix = %
     """
-    name_regex_str = r'^(((%s)[,:]?\s+)|%s)(.+)$' % (re.escape("|".join(names)), prefix)
-    name_regex = re.compile(name_regex_str, re.IGNORECASE)
-    if name_regex.match(message):
-      return name_regex.match(message).group(4)
+
+    names = self.config['names']
+    prefix = self.config['prefix']
+
+    name_regex_str = r'^(?:(?:(%s)[,:]?\s+)|%s)(.+)$' % (re.escape("|".join(names)), prefix)
+    self.name_regex = re.compile(name_regex_str, re.IGNORECASE)
+
+  def strip_prefix(self, message):
+    """
+    Checks if the bot was called by a user.
+    Returns the suffix if so.
+
+    Prefixes include the bot's nick as well as a set symbol.
+    """
+    
+    match = self.name_regex.match(message)
+    if match:
+      return match.group(1)
 
     return None
 
@@ -190,7 +199,7 @@ class Bot(object):
         self._mode)
 
   def add_listener(self, regex, func):
-    array = self.listeners.setdefault(regex, [])
+    array = self.listeners.setdefault(re.compile(regex), [])
     array.append(func)
 
   # Default listeners
