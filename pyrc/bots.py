@@ -106,19 +106,18 @@ class Bot(object):
           raise "This is not a type I've ever heard of."
 
   def receivemessage(self, channel, sender, message):
-    to_continue = self.parsecommand(channel, sender, message)
-    if not to_continue:
-      return
+    to_continue = True
+    suffix = self.strip_prefix(message)
+    if suffix:
+      to_continue = self.parsefuncs(channel, sender, suffix, self._commands)
+    
+    # if no command was executed
+    if to_continue:
+      to_continue = self.parsefuncs(channel, sender, message, self._privmsgs)
 
-    to_continue = self.parseprivmsg(channel, sender, message)
-
-  def parsecommand(self, channel, sender, message):
-    command = self.bot_called(message)
-    if not command:
-      return False
-
-    for command_func in self._commands:
-      match = command_func._matcher.search(command)
+  def parsefuncs(self, channel, sender, message, funcs):
+    for func in funcs:
+      match = func._matcher.search(message)
       if match:
         group_dict = match.groupdict()
         groups = match.groups()
@@ -127,36 +126,19 @@ class Bot(object):
           # match.groups() also returns named parameters
           raise "You cannot use both named and unnamed parameters"
         elif group_dict:
-          command_func(self, channel, sender, **group_dict)
+          func(self, channel, sender, **group_dict)
         else:
-          command_func(self, channel, sender, *groups)
-        
-        if self.config['break_on_match']: return True
-    return False
+          func(self, channel, sender, *groups)
 
-  def parseprivmsg(self, channel, sender, message):
-    for privmsg_func in self._privmsgs:
-      match = privmsg_func._matcher.search(message)
-      if match:
-        group_dict = match.groupdict()
-        groups = match.groups()
+        if self.config['break_on_match']: return False
+    return True
 
-        if group_dict and (len(groups) > len(group_dict)):
-          # match.groups() also returns named parameters
-          raise "You cannot use both named and unnamed parameters"
-        elif group_dict:
-           privmsg_func(self, channel, sender, **group_dict)
-        else:
-          privmsg_func(self, channel, sender, *groups)
-      
-        if self.config['break_on_match']: return True
-    return False
-
-  def bot_called(self, message):
+  def strip_prefix(self, message):
     """
     Checks if the bot was called by a user.
-    This includes nick highlighting and prepending a set 
-    prefix to the command.
+    Returns the suffix if so.
+
+    Prefixes include the bot's nick as well as a set symbol.
     """
     # sort names so names that are substrings work
     names = sorted(self.config['names'], key=len, reverse=True)
