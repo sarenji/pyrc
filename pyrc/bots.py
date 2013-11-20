@@ -6,6 +6,7 @@ import re
 import os
 
 import threads
+import misc
 
 class Bot(object):
   def __init__(self, host, **kwargs):
@@ -30,13 +31,16 @@ class Bot(object):
 
     self._inbuffer = ""
     self._commands = []
+    self._privmsgs = []
     self._threads = []
     self.socket = None
     self.initialized = False
     self.listeners = {}
 
+    # init funcs
     self.add_listeners()
     self.addhooks()
+    self.compile_regex()
 
   def message(self, recipient, s):
     "High level interface to sending an IRC message."
@@ -83,7 +87,7 @@ class Bot(object):
     with all the regular expression's matched subgroups.
     """
     for regex, callbacks in self.listeners.iteritems():
-      match = re.match(regex, line)
+      match = regex.match(line)
 
       if not match:
         continue
@@ -96,45 +100,51 @@ class Bot(object):
       if callable(func) and hasattr(func, '_type'):
         if func._type == 'COMMAND':
           self._commands.append(func)
-        elif func._type == "REPEAT":
+        elif func._type == 'PRIVMSG':
+          self._privmsgs.append(func)
+        elif func._type == 'REPEAT':
           thread = threads.JobThread(func, self)
           self._threads.append(thread)
         else:
           raise "This is not a type I've ever heard of."
 
-  def receivemessage(self, channel, sender, message):
-    self.parsecommand(channel, sender, message)
+  def receivemessage(self, target, sender, message):
+    message = message.strip()
+    to_continue = True
 
-  def parsecommand(self, channel, sender, message):
-    command = self.bot_called(message)
-    if not command:
-      return
+    if misc.is_channel(target):
+      suffix = self.strip_prefix(message)
+      if suffix:
+        to_continue = self.parsefuncs(target, sender, suffix, self._commands)
+    else: # if it's not a channel, there's no need to use a prefix or highlight the bot's nick
+      to_continue = self.parsefuncs(target, sender, message, self._commands)
 
-    for command_func in self._commands:
-      match = command_func._matcher.search(command)
+    # if no command was executed
+    if to_continue:
+      to_continue = self.parsefuncs(target, sender, message, self._privmsgs)
+  
+  def parsefuncs(self, target, sender, message, funcs):
+    for func in funcs:
+      match = func._matcher.search(message)
       if match:
         group_dict = match.groupdict()
         groups = match.groups()
+
         if group_dict and (len(groups) > len(group_dict)):
           # match.groups() also returns named parameters
           raise "You cannot use both named and unnamed parameters"
         elif group_dict:
-          command_func(self, channel, sender, **group_dict)
+          func(self, target, sender, **group_dict)
         else:
-          command_func(self, channel, sender, *groups)
-        
-        if self.config['break_on_match']: break
+          func(self, target, sender, *groups)
 
-  def bot_called(self, message):
-    """
-    Checks if the bot was called by a user.
-    This includes nick highlighting and prepending a set 
-    prefix to the command.
-    """
-    # sort names so names that are substrings work
-    names = sorted(self.config['names'], key=len, reverse=True)
-    prefix = self.config['prefix']
+        if self.config['break_on_match']: return False
+    return True
 
+  def compile_regex(self):
+    self.compile_strip_prefix()
+
+  def compile_strip_prefix(self):
     """
     regex example:
     ^(((BotA|BotB)[,:]?\s+)|%)(.+)$
@@ -142,10 +152,24 @@ class Bot(object):
     names = [BotA, BotB]
     prefix = %
     """
-    name_regex_str = r'^(((%s)[,:]?\s+)|%s)(.+)$' % (re.escape("|".join(names)), prefix)
-    name_regex = re.compile(name_regex_str, re.IGNORECASE)
-    if name_regex.match(message):
-      return name_regex.match(message).group(4)
+
+    names = self.config['names']
+    prefix = self.config['prefix']
+
+    name_regex_str = r'^(?:(?:(%s)[,:]?\s+)|%s)(.+)$' % (re.escape("|".join(names)), prefix)
+    self.name_regex = re.compile(name_regex_str, re.IGNORECASE)
+
+  def strip_prefix(self, message):
+    """
+    Checks if the bot was called by a user.
+    Returns the suffix if so.
+
+    Prefixes include the bot's nick as well as a set symbol.
+    """
+    
+    match = self.name_regex.match(message)
+    if match:
+      return match.group(1)
 
     return None
 
@@ -179,7 +203,7 @@ class Bot(object):
         self._mode)
 
   def add_listener(self, regex, func):
-    array = self.listeners.setdefault(regex, [])
+    array = self.listeners.setdefault(re.compile(regex), [])
     array.append(func)
 
   # Default listeners
@@ -187,8 +211,8 @@ class Bot(object):
   def _ping(self, host):
     self.cmd("PONG :%s" % host)
 
-  def _privmsg(self, nick, channel, message):
-    self.receivemessage(channel, nick, message)
+  def _privmsg(self, sender, target, message):
+    self.receivemessage(target, sender, message)
 
   def _invite(self, inviter, channel):
     self.join(channel)
