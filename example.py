@@ -17,7 +17,6 @@ class GangstaBot(pyrc.Bot):
     """
     will repeat 'lol', 'lmao, 'rofl' or 'roflmao' when seen in a message
     """
-    print(args)
     self.message(channel, args[0])
 
   @hooks.interval(10000)
