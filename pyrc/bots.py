@@ -106,6 +106,8 @@ class Bot(object):
           raise "This is not a type I've ever heard of."
 
   def receivemessage(self, channel, sender, message):
+    message = message.strip()
+
     to_continue = True
     suffix = self.strip_prefix(message)
     if suffix:
