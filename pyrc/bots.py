@@ -6,6 +6,7 @@ import re
 import os
 
 import threads
+import misc
 
 class Bot(object):
   def __init__(self, host, **kwargs):
@@ -110,16 +111,19 @@ class Bot(object):
   def receivemessage(self, target, sender, message):
     message = message.strip()
     to_continue = True
-    
-    suffix = self.strip_prefix(message)
-    if suffix:
-      to_continue = self.parsefuncs(target, sender, suffix, self._commands)
-    
+
+    if misc.is_channel(target):
+      suffix = self.strip_prefix(message)
+      if suffix:
+        to_continue = self.parsefuncs(target, sender, suffix, self._commands)
+    else: # if it's not a channel, there's no need to use a prefix or highlight the bot's nick
+      to_continue = self.parsefuncs(target, sender, message, self._commands)
+
     # if no command was executed
     if to_continue:
-      to_continue = self.parsefuncs(channel, sender, message, self._privmsgs)
+      to_continue = self.parsefuncs(target, sender, message, self._privmsgs)
   
-  def parsefuncs(self, channel, sender, message, funcs):
+  def parsefuncs(self, target, sender, message, funcs):
     for func in funcs:
       match = func._matcher.search(message)
       if match:
@@ -132,7 +136,7 @@ class Bot(object):
         elif group_dict:
           func(self, target, sender, **group_dict)
         else:
-          func(self, channel, sender, *groups)
+          func(self, target, sender, *groups)
 
         if self.config['break_on_match']: return False
     return True
@@ -208,7 +212,7 @@ class Bot(object):
     self.cmd("PONG :%s" % host)
 
   def _privmsg(self, sender, target, message):
-    self.receivemessage(sender, target, message)
+    self.receivemessage(target, sender, message)
 
   def _invite(self, inviter, channel):
     self.join(channel)
