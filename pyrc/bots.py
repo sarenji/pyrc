@@ -6,7 +6,6 @@ import re
 import os
 
 import threads
-import misc
 
 class Bot(object):
   def __init__(self, host, **kwargs):
@@ -112,7 +111,7 @@ class Bot(object):
     message = message.strip()
     to_continue = True
 
-    if misc.is_channel(target):
+    if target.startswith("#"):
       suffix = self.strip_prefix(message)
       if suffix:
         to_continue = self.parsefuncs(target, sender, suffix, self._commands)
@@ -167,9 +166,9 @@ class Bot(object):
     Prefixes include the bot's nick as well as a set symbol.
     """
     
-    match = self.name_regex.match(message)
-    if match:
-      return match.group(1)
+    search = self.name_regex.search(message)
+    if search:
+      return search.groups()[1]
 
     return None
 
@@ -196,6 +195,7 @@ class Bot(object):
 
 
   def add_listeners(self):
+    self.add_listener(r'^:\S+ 433 .*', self._change_nick)
     self.add_listener(r'^PING :(.*)', self._ping)
     self.add_listener(r'^:(\S+)!\S+ PRIVMSG (\S+) :(.*)', self._privmsg)
     self.add_listener(r'^:(\S+)!\S+ INVITE \S+ :?(.*)', self._invite)
@@ -207,6 +207,10 @@ class Bot(object):
     array.append(func)
 
   # Default listeners
+
+  def _change_nick(self):
+    self.config["nick"] += "_"
+    self.cmd("NICK %s" % self.config["nick"])
 
   def _ping(self, host):
     self.cmd("PONG :%s" % host)
