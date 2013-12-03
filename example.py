@@ -5,7 +5,7 @@ class GangstaBot(pyrc.Bot):
   @hooks.command()
   def bling(self, target, sender):
     "will print yo"
-    if misc.is_channel(target):
+    if target.startswith("#"):
       self.message(target, "%s: yo" % sender)
     else:
       self.message(target, "yo")
@@ -13,7 +13,7 @@ class GangstaBot(pyrc.Bot):
   @hooks.command("^repeat\s+(?P<msg>.+)$")
   def repeat(self, target, sender, **kwargs):
     "will repeat whatever yo say"
-    if misc.is_channel(target):
+    if target.startswith("#"):
       self.message(target, kwargs["msg"])
     else:
       self.message(sender, kwargs["msg"])
@@ -24,7 +24,7 @@ class GangstaBot(pyrc.Bot):
     will repeat 'lol', 'lmao, 'rofl' or 'roflmao' when seen in a message
     only applies to channel messages
     """
-    if misc.is_channel(target):
+    if target.startswith("#"):
       self.message(target, args[0])
 
   @hooks.interval(10000)
