@@ -23,7 +23,7 @@ class GangstaBot(pyrc.Bot):
     else:
       self.message(sender, kwargs["msg"])
 
-  @hooks.privmsg("(lol|lmao|rofl(mao)?)")
+  @hooks.privmsg("(lol|lmao|rofl(?:mao)?)")
   def stopword(self, target, sender, *args):
     """
     will repeat 'lol', 'lmao, 'rofl' or 'roflmao' when seen in a message
