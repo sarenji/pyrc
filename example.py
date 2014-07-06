@@ -3,12 +3,17 @@ import pyrc.utils.hooks as hooks
 
 class GangstaBot(pyrc.Bot):
   @hooks.command()
+  def info(self, target, sender):
+    "will print the target and sender to the console"
+    print("target: %s, sender: %s" % (target, sender))
+
+  @hooks.command()
   def bling(self, target, sender):
     "will print yo"
     if target.startswith("#"):
       self.message(target, "%s: yo" % sender)
     else:
-      self.message(target, "yo")
+      self.message(sender, "yo")
 
   @hooks.command("^repeat\s+(?P<msg>.+)$")
   def repeat(self, target, sender, **kwargs):
@@ -18,7 +23,7 @@ class GangstaBot(pyrc.Bot):
     else:
       self.message(sender, kwargs["msg"])
 
-  @hooks.privmsg("(lol|lmao|rofl(mao)?)")
+  @hooks.privmsg("(lol|lmao|rofl(?:mao)?)")
   def stopword(self, target, sender, *args):
     """
     will repeat 'lol', 'lmao, 'rofl' or 'roflmao' when seen in a message
