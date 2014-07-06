@@ -37,13 +37,8 @@ class Bot(object):
     self.listeners = {}
 
     # init funcs
-    self.add_listeners()
-    self.addhooks()
-    self.compile_regex()
-
-  def message(self, recipient, s):
-    "High level interface to sending an IRC message."
-    self.cmd("PRIVMSG %s :%s" % (recipient, s))
+    self._add_listeners()
+    self._addhooks()
 
   def connect(self):
     '''
@@ -52,13 +47,19 @@ class Bot(object):
     self._connect()
 
     try:
-      self.listen()
+      self._listen()
     except (KeyboardInterrupt, SystemExit):
       pass
     finally:
       self.close()
 
-  def listen(self):
+  def close(self):
+    for thread in self._threads:
+      thread.shutdown()
+    self.socket.shutdown(socket.SHUT_RDWR)
+    self.socket.close()
+
+  def _listen(self):
     """
     Constantly listens to the input from the server. Since the messages come
     in pieces, we wait until we receive 1 or more full lines to start parsing.
@@ -77,9 +78,9 @@ class Bot(object):
         # Strip \r from \r\n for RFC-compliant IRC servers.
         line = line.rstrip('\r')
         if self.config['verbose']: print line
-        self.run_listeners(line)
+        self._run_listeners(line)
 
-  def run_listeners(self, line):
+  def _run_listeners(self, line):
     """
     Each listener's associated regular expression is matched against raw IRC
     input. If there is a match, the listener's associated function is called
@@ -94,7 +95,7 @@ class Bot(object):
       for callback in callbacks:
         callback(*match.groups())
 
-  def addhooks(self):
+  def _addhooks(self):
     for func in self.__class__.__dict__.values():
       if callable(func) and hasattr(func, '_type'):
         if func._type == 'COMMAND':
@@ -107,22 +108,22 @@ class Bot(object):
         else:
           raise "This is not a type I've ever heard of."
 
-  def receivemessage(self, target, sender, message):
+  def _receivemessage(self, target, sender, message):
     message = message.strip()
     to_continue = True
 
     if target.startswith("#"):
-      suffix = self.strip_prefix(message)
+      suffix = self._strip_prefix(message)
       if suffix:
-        to_continue = self.parsefuncs(target, sender, suffix, self._commands)
+        to_continue = self._parsefuncs(target, sender, suffix, self._commands)
     else: # if it's not a channel, there's no need to use a prefix or highlight the bot's nick
-      to_continue = self.parsefuncs(target, sender, message, self._commands)
+      to_continue = self._parsefuncs(target, sender, message, self._commands)
 
     # if no command was executed
     if to_continue:
-      to_continue = self.parsefuncs(target, sender, message, self._privmsgs)
+      to_continue = self._parsefuncs(target, sender, message, self._privmsgs)
   
-  def parsefuncs(self, target, sender, message, funcs):
+  def _parsefuncs(self, target, sender, message, funcs):
     for func in funcs:
       match = func._matcher.search(message)
       if match:
@@ -140,44 +141,34 @@ class Bot(object):
         if self.config['break_on_match']: return False
     return True
 
-  def compile_regex(self):
-    self.compile_strip_prefix()
-
-  def compile_strip_prefix(self):
-    """
-    regex example:
-    ^(((BotA|BotB)[,:]?\s+)|%)(.+)$
-    
-    names = [BotA, BotB]
-    prefix = %
-    """
-
-    names = self.config['names']
-    prefix = self.config['prefix']
-
-    name_regex_str = r'^(?:(?:(%s)[,:]?\s+)|%s)(.+)$' % (re.escape("|".join(names)), prefix)
-    self.name_regex = re.compile(name_regex_str, re.IGNORECASE)
-
-  def strip_prefix(self, message):
+  def _strip_prefix(self, message):
     """
     Checks if the bot was called by a user.
     Returns the suffix if so.
 
     Prefixes include the bot's nick as well as a set symbol.
     """
-    
+
+    if not hasattr(self, "name_regex"):
+      """
+      regex example:
+      ^(((BotA|BotB)[,:]?\s+)|%)(.+)$
+      
+      names = [BotA, BotB]
+      prefix = %
+      """
+
+      names = self.config['names']
+      prefix = self.config['prefix']
+
+      name_regex_str = r'^(?:(?:(%s)[,:]?\s+)|%s)(.+)$' % (re.escape("|".join(names)), prefix)
+      self.name_regex = re.compile(name_regex_str, re.IGNORECASE)
+
     search = self.name_regex.search(message)
     if search:
       return search.groups()[1]
 
     return None
-
-  def join(self, *channels):
-    self.cmd('JOIN %s' % (' '.join(channels)))
-
-  def cmd(self, raw_line):
-    if self.config['verbose']: print "> %s" % raw_line
-    self.socket.send(raw_line + "\r\n")
 
   def _connect(self):
     "Connects a socket to the server using options defined in `config`."
@@ -187,22 +178,34 @@ class Bot(object):
     self.cmd("USER %s %s bla :%s" %
         (self.config['ident'], self.config['host'], self.config['realname']))
 
-  def close(self):
-    for thread in self._threads:
-      thread.shutdown()
-    self.socket.shutdown(socket.SHUT_RDWR)
-    self.socket.close()
+  def cmd(self, raw_line):
+    if self.config['verbose']: print "> %s" % raw_line
+    self.socket.send(raw_line + "\r\n")
+
+  # Higher level interfaces
+
+  def join(self, *channels):
+    "High level interface to joining channels."
+    self.cmd('JOIN %s' % (' '.join(channels)))
+
+  def part(self, *channels):
+    "High level interface to joining channels."
+    self.cmd('PART %s' % (' '.join(channels)))
+
+  def message(self, recipient, s):
+    "High level interface to sending an IRC message."
+    self.cmd("PRIVMSG %s :%s" % (recipient, s))
 
 
-  def add_listeners(self):
-    self.add_listener(r'^:\S+ 433 .*', self._change_nick)
-    self.add_listener(r'^PING :(.*)', self._ping)
-    self.add_listener(r'^:(\S+)!\S+ PRIVMSG (\S+) :(.*)', self._privmsg)
-    self.add_listener(r'^:(\S+)!\S+ INVITE \S+ :?(.*)', self._invite)
-    self.add_listener(r'^\S+ MODE %s :\+([a-zA-Z]+)' % self.config['nick'],
+  def _add_listeners(self):
+    self._add_listener(r'^:\S+ 433 .*', self._change_nick)
+    self._add_listener(r'^PING :(.*)', self._ping)
+    self._add_listener(r'^:(\S+)!\S+ PRIVMSG (\S+) :(.*)', self._privmsg)
+    self._add_listener(r'^:(\S+)!\S+ INVITE \S+ :?(.*)', self._invite)
+    self._add_listener(r'^\S+ MODE %s :\+([a-zA-Z]+)' % self.config['nick'],
         self._mode)
 
-  def add_listener(self, regex, func):
+  def _add_listener(self, regex, func):
     array = self.listeners.setdefault(re.compile(regex), [])
     array.append(func)
 
@@ -216,18 +219,18 @@ class Bot(object):
     self.cmd("PONG :%s" % host)
 
   def _privmsg(self, sender, target, message):
-    self.receivemessage(target, sender, message)
+    self._receivemessage(target, sender, message)
 
   def _invite(self, inviter, channel):
     self.join(channel)
 
   def _mode(self, modes):
-    if 'i' in modes and self.should_autoident():
+    if 'i' in modes and self._should_autoident():
       self.cmd("PRIVMSG NickServ :identify %s" % self.config['password'])
 
     # Initialize (join rooms and start threads) if the bot is not
     # auto-identifying, or has just identified.
-    if ('r' in modes or not self.should_autoident()) and not self.initialized:
+    if ('r' in modes or not self._should_autoident()) and not self.initialized:
       self.initialized = True
       if self.config['channels']:
         self.join(*self.config['channels'])
@@ -236,6 +239,5 @@ class Bot(object):
       for thread in self._threads:
         thread.start()
 
-  def should_autoident(self):
+  def _should_autoident(self):
     return self.config['password']
-
